@@ -1,4 +1,30 @@
 ---
+/**
+ * Chart.jsを使ってバーンアップチャートを作成する
+ * - 元になるデータ
+ *   - 以下のようなJSON形式
+ *     ```
+ *     [
+ *       {
+ *         "id": 1,
+ *         "title": "Issue 1",
+ *         "description": "Issue 1 description",
+ *         "status": "todo",
+ *         "assignee": "John Doe",
+ *         "created": "2023-06-01",
+ *         "closed": null
+ *       }
+ *     ]
+ *     ```
+ *   - 以下からダウンロードする
+ *     - https://raw.githubusercontent.com/dzeyelid/github-copilot-playground/main/sample/chart/issues.json
+ * - チャートの期間は、2023/6/16から2023/6/30までとする
+ * - y軸
+ *   - 最大値はアイテムの個数とする
+ *   - 日付におけるclosedの累計の個数を示す
+ * - x軸
+ *   - 日付を示す  
+*/
 ---
 
 <html lang="en">
@@ -11,5 +37,60 @@
   </head>
   <body>
     <h1>Astro</h1>
+    <!-- チャートを描画する -->
+    <script>
+      import Chart from 'chart.js/auto'
+      import { add, compareAsc, format, isSameDay } from 'date-fns'
+
+      // データを取得する
+      const response = await fetch('https://raw.githubusercontent.com/dzeyelid/github-copilot-playground/main/sample/chart/issues.json')
+      const data = await response.json()
+
+      // チャートの期間を設定する
+      const start = new Date('2023-06-16')
+      const end = new Date('2023-06-30')
+
+      // 期間中、日毎に、開始時点からその日までのclosedの累計を算出する
+      // {
+      //    date: string,
+      //    count: number
+      // }
+      const data = []
+      while (compareAsc(start, end) <= 0) {
+        const date = format(start, 'yyyy-MM-dd')
+        const count = data.filter(item => isSameDay(new Date(item.closed), start)).length
+        data.push({ date, count })
+        start = add(start, { days: 1 })
+      }
+
+      // バーンアップチャートを描画する
+      const ctx = document.getElementById('chart').getContext('2d')
+      const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: data.map(item => item.date),
+          datasets: [
+            {
+              label: 'Closed',
+              data: data.map(item => item.count),
+              borderColor: 'rgb(255, 99, 132)',
+              backgroundColor: 'rgba(255, 99, 132, 0.5)',
+              tension: 0.1,
+            },
+          ],
+        },
+        options: {
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: data.length,
+            },
+          },
+        },
+      })
+
+
+
+    </script>
   </body>
 </html>
